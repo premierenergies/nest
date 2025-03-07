@@ -87,11 +87,11 @@
 
 /* Table styles */
 .data-table {
-  @apply w-full border-collapse;
+  @apply w-full border-collapse rounded-lg overflow-hidden;
 }
 
 .data-table th {
-  @apply bg-secondary/80 backdrop-blur-sm sticky top-0 z-10;
+  @apply bg-secondary/80 backdrop-blur-sm sticky top-0 z-10 px-4 py-3 font-medium text-sm text-muted-foreground;
 }
 
 .data-table th, .data-table td {
@@ -99,7 +99,19 @@
 }
 
 .data-table tr {
-  @apply transition-colors hover:bg-secondary/50;
+  @apply transition-colors;
+}
+
+.data-table tbody tr {
+  @apply hover:bg-secondary/50 cursor-pointer;
+}
+
+.data-table tbody tr:nth-child(even) {
+  @apply bg-secondary/20;
+}
+
+.data-table td {
+  @apply py-3 px-4;
 }
 
 /* Tile styles */

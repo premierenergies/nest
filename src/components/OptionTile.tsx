@@ -1,6 +1,4 @@
-
 import React from 'react';
-import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface OptionTileProps {
@@ -15,7 +13,7 @@ const OptionTile: React.FC<OptionTileProps> = ({ title, description, icon, onCli
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      className="option-tile cursor-pointer p-6" 
+      className="option-tile cursor-pointer p-6"
       onClick={onClick}
     >
       <div className="flex flex-col items-center text-center">

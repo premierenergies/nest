@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import OptionTile from '../components/OptionTile';
 import EquipmentDataTable from '../components/EquipmentDataTable';
@@ -27,7 +26,6 @@ const Index = () => {
                 Select a category below to view and manage equipment spare parts data
               </p>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
               <OptionTile 
                 title="Module Line"
@@ -44,10 +42,7 @@ const Index = () => {
             </div>
           </>
         ) : (
-          <EquipmentDataTable 
-            lineType={selectedLineType} 
-            onBack={handleBack}
-          />
+          <EquipmentDataTable lineType={selectedLineType} onBack={handleBack} />
         )}
       </div>
     </div>

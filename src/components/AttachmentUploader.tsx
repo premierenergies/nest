@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { FileAttachment } from '@/types/equipmentTypes';
@@ -41,21 +40,27 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length) {
-      setSelectedFiles(files);
-      
       if (hasExisting) {
+        setSelectedFiles(files);
         setIsDialogOpen(true);
       } else {
-        handleSave('append');
+        // Use the local files variable directly instead of relying on selectedFiles state.
+        onSave(files, 'append');
+        toast(`${typeLabel}${files.length > 1 ? 's' : ''} added successfully`, {
+          description: `${files.length} file${files.length > 1 ? 's' : ''} added`,
+          action: {
+            label: "Dismiss",
+            onClick: () => {}
+          }
+        });
       }
     }
-  };
+  };  
 
   const handleSave = (mode: 'replace' | 'append') => {
     onSave(selectedFiles, mode);
     setSelectedFiles([]);
     setIsDialogOpen(false);
-    
     toast(`${typeLabel}${selectedFiles.length > 1 ? 's' : ''} ${mode === 'replace' ? 'replaced' : 'added'} successfully`, {
       description: `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} ${mode === 'replace' ? 'replaced' : 'added'}`,
       action: {
@@ -70,8 +75,6 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   };
 
   const removeAttachment = (attachmentIndex: number) => {
-    // We're not actually removing from the service in this demo
-    // Just showing how it would work UI-wise
     toast(`${typeLabel} removed`, {
       description: `${filteredAttachments[attachmentIndex].name} was removed`,
     });
@@ -116,11 +119,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
           className="hidden"
           accept={type === 'photo' ? "image/*" : ".pdf,.dwg,.dxf"}
         />
-        <Button 
-          variant="outline" 
-          onClick={handleButtonClick}
-          className="w-full"
-        >
+        <Button variant="outline" onClick={handleButtonClick} className="w-full">
           <Upload className="w-4 h-4 mr-2" /> Upload {typeLabel}s
         </Button>
       </div>

@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { EquipmentSpareData, FileAttachment } from '../types/equipmentTypes';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getAttachments, saveAttachments } from '@/services/equipmentService';
+import { fetchAttachments, uploadAttachments } from '@/services/equipmentService';
 import AttachmentUploader from './AttachmentUploader';
 import { X } from 'lucide-react';
 
@@ -14,28 +13,37 @@ interface EquipmentDetailViewProps {
   onClose: () => void;
 }
 
-const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({
-  equipment,
-  isOpen,
-  onClose
-}) => {
+const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, isOpen, onClose }) => {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
-  
+
+  const loadAttachments = async () => {
+    if (equipment) {
+      try {
+        const [photos, drawings] = await Promise.all([
+          fetchAttachments(equipment.SlNo, 'photo'),
+          fetchAttachments(equipment.SlNo, 'drawing')
+        ]);
+        setAttachments([...photos, ...drawings]);
+      } catch (error) {
+        console.error('Error loading attachments:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     if (equipment) {
-      // Fetch attachments when equipment changes
-      const fetchedAttachments = getAttachments(equipment.SlNo);
-      setAttachments(fetchedAttachments);
+      loadAttachments();
     }
   }, [equipment]);
 
-  const handleSaveAttachments = (files: File[], type: 'photo' | 'drawing', mode: 'replace' | 'append') => {
+  const handleSaveAttachments = async (files: File[], type: 'photo' | 'drawing', mode: 'replace' | 'append') => {
     if (equipment) {
-      saveAttachments(equipment.SlNo, files, type, mode);
-      
-      // Refresh attachments
-      const updatedAttachments = getAttachments(equipment.SlNo);
-      setAttachments(updatedAttachments);
+      try {
+        await uploadAttachments(equipment.SlNo, files, type, mode);
+        loadAttachments();
+      } catch (error) {
+        console.error('Error saving attachments:', error);
+      }
     }
   };
 
@@ -69,25 +77,27 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({
                 <TabsContent value="details" className="mt-0 animate-fade-in">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <DetailItem label="Plant" value={equipment.Plant} />
-                    <DetailItem label="Plant Code" value={equipment.PlantCode} />
-                    <DetailItem label="Equipment No" value={equipment.EquipmentNo} />
-                    <DetailItem label="Machine Supplier" value={equipment.MachineSupplier} />
+                    <DetailItem label="PlantCode" value={equipment.PlantCode} />
+                    <DetailItem label="Line" value={equipment.Line} />
+                    <DetailItem label="EquipmentName" value={equipment.EquipmentName} />
+                    <DetailItem label="EquipmentNo" value={equipment.EquipmentNo} />
+                    <DetailItem label="MachineSupplier" value={equipment.MachineSupplier} />
                     <DetailItem label="Type" value={equipment.Type} />
-                    <DetailItem label="Spare Name" value={equipment.SpareName} />
-                    <DetailItem label="Material Code (SAP)" value={equipment.MaterialCodeSAP} />
-                    <DetailItem label="SAP Short Text" value={equipment.SAPShortText} />
-                    <DetailItem label="Full Description" value={equipment.FullDescription} span={2} />
-                    <DetailItem label="Part No" value={equipment.PartNo} />
+                    <DetailItem label="SpareName" value={equipment.SpareName} />
+                    <DetailItem label="MaterialSAPCode" value={equipment.MaterialSAPCode} />
+                    <DetailItem label="SAPShortText" value={equipment.SAPShortText} />
+                    <DetailItem label="FullDescription" value={equipment.FullDescription} span={2} />
+                    <DetailItem label="PartNo" value={equipment.PartNo} />
                     <DetailItem label="Make" value={equipment.Make} />
                     <DetailItem label="Category" value={equipment.Category} />
                     <DetailItem label="VED" value={equipment.VED} />
-                    <DetailItem label="Vendor" value={equipment.Vendor1} />
-                    <DetailItem label="Spare Lifecycle" value={equipment.SpareLifecycle} />
-                    <DetailItem label="Frequency (Months)" value={equipment.FrequencyMonths.toString()} />
-                    <DetailItem label="Qty Per Frequency" value={equipment.TotalQtyPerFrequency.toString()} />
-                    <DetailItem label="Requirement Per Year" value={equipment.RequirementPerYear.toString()} />
-                    <DetailItem label="Safety Stock" value={equipment.SafetyStock.toString()} />
-                    <DetailItem label="Annual Projection" value={equipment.TotalAnnualQtyProjection.toString()} />
+                    <DetailItem label="Vendor1" value={equipment.Vendor1} />
+                    <DetailItem label="SpareLifecycle" value={equipment.SpareLifecycle} />
+                    <DetailItem label="FrequencyMonths" value={equipment.FrequencyMonths.toString()} />
+                    <DetailItem label="TotalQtyPerFrequency" value={equipment.TotalQtyPerFrequency.toString()} />
+                    <DetailItem label="RequirementPerYear" value={equipment.RequirementPerYear.toString()} />
+                    <DetailItem label="SafetyStock" value={equipment.SafetyStock.toString()} />
+                    <DetailItem label="TotalAnnualQtyProjection" value={equipment.TotalAnnualQtyProjection.toString()} />
                   </div>
                 </TabsContent>
 
@@ -117,12 +127,7 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({
   );
 };
 
-// Helper component for displaying detail items
-const DetailItem: React.FC<{ label: string; value: string; span?: number }> = ({ 
-  label, 
-  value,
-  span = 1 
-}) => (
+const DetailItem: React.FC<{ label: string; value: string; span?: number }> = ({ label, value, span = 1 }) => (
   <div className={`p-3 bg-secondary/30 rounded-lg flex flex-col ${span > 1 ? 'md:col-span-' + span : ''}`}>
     <span className="text-xs text-muted-foreground">{label}</span>
     <span className="font-medium">{value}</span>

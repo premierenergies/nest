@@ -1,4 +1,3 @@
-
 export interface EquipmentSpareData {
   SlNo: number;
   PlantCode: string;
@@ -9,7 +8,7 @@ export interface EquipmentSpareData {
   MachineSupplier: string;
   Type: string;
   SpareName: string;
-  MaterialCodeSAP: string;
+  MaterialSAPCode: string;
   SAPShortText: string;
   FullDescription: string;
   PartNo: string;
@@ -23,18 +22,17 @@ export interface EquipmentSpareData {
   RequirementPerYear: number;
   SafetyStock: number;
   TotalAnnualQtyProjection: number;
-  UploadPhotos: File[] | null;
-  Drawing: File[] | null;
+  UploadPhotos: string | null; // Stored as JSON string
+  Drawing: string | null;      // Stored as JSON string
 }
 
 export interface FileAttachment {
   name: string;
   url: string;
   type: 'photo' | 'drawing';
-  file: File;
 }
 
 export enum LineType {
-  MODULE = 'Module_Line',
-  CELL = 'Cell_Line'
+  MODULE = 'MODULE_LINE',
+  CELL = 'CELL_LINE'
 }

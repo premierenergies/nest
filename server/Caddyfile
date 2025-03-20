@@ -1,0 +1,7 @@
+nest.premierenergies.com {
+    reverse_proxy https://0.0.0.0:40443 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}

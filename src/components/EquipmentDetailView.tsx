@@ -1,3 +1,4 @@
+// root/src/components/EquipmentDetailView.tsx
 import React, { useState, useEffect } from 'react';
 import { EquipmentSpareData, FileAttachment } from '../types/equipmentTypes';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +13,7 @@ interface EquipmentDetailViewProps {
   isOpen: boolean;
   onClose: () => void;
 }
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, isOpen, onClose }) => {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
@@ -48,6 +50,10 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
   };
 
   if (!equipment) return null;
+
+  // Filter attachments by type for each tab.
+  const photoAttachments = attachments.filter(a => a.type === 'photo');
+  const drawingAttachments = attachments.filter(a => a.type === 'drawing');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -106,8 +112,18 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
                     type="photo"
                     equipmentId={equipment.SlNo}
                     onSave={(files, mode) => handleSaveAttachments(files, 'photo', mode)}
-                    existingAttachments={attachments}
+                    existingAttachments={photoAttachments}
                   />
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    {photoAttachments.map((att, index) => (
+                      <img
+                        key={index}
+                        src={att.url}
+                        alt={att.name}
+                        className="w-full h-auto object-cover rounded shadow"
+                      />
+                    ))}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="drawings" className="mt-0 animate-fade-in">
@@ -115,8 +131,18 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
                     type="drawing"
                     equipmentId={equipment.SlNo}
                     onSave={(files, mode) => handleSaveAttachments(files, 'drawing', mode)}
-                    existingAttachments={attachments}
+                    existingAttachments={drawingAttachments}
                   />
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    {drawingAttachments.map((att, index) => (
+                      <img
+                        key={index}
+                        src={att.url}
+                        alt={att.name}
+                        className="w-full h-auto object-cover rounded shadow"
+                      />
+                    ))}
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>

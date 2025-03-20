@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { EquipmentSpareData, LineType } from '../types/equipmentTypes';
+// root/src/components/EquipmentDataTable.tsx
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { EquipmentSpareData, LineType } from '../types/equipmentTypes';
 import { fetchEquipmentByLineType } from '../services/equipmentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, FileImage, FileSymlink } from 'lucide-react';
@@ -8,14 +9,43 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import EquipmentDetailView from './EquipmentDetailView';
 import { Badge } from '@/components/ui/badge';
 
-interface EquipmentDataTableProps {
-  lineType: LineType;
-  onBack: () => void;
-}
+// Helper function to escape special regex characters.
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const EquipmentDataTable: React.FC<EquipmentDataTableProps> = ({ lineType, onBack }) => {
+// Updated helper function: converts any value to string before splitting.
+const highlightText = (text: any, query: string): JSX.Element => {
+  const str = text !== undefined && text !== null ? String(text) : '';
+  if (!query) return <>{str}</>;
+  const escapedQuery = escapeRegExp(query);
+  const regex = new RegExp(`(${escapedQuery})`, 'gi');
+  const parts = str.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} className="bg-yellow-300">{part}</span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
+const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> = ({ lineType, onBack }) => {
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentSpareData | null>(null);
   const [detailViewOpen, setDetailViewOpen] = useState(false);
+
+  // New state variables for the PlantCode filter and search query.
+  const [filterPlantCode, setFilterPlantCode] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  // Debounce the search query to improve performance.
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const { data: equipmentData, isLoading, error, refetch } = useQuery<EquipmentSpareData[]>({
     queryKey: ['equipment', lineType],
@@ -23,7 +53,6 @@ const EquipmentDataTable: React.FC<EquipmentDataTableProps> = ({ lineType, onBac
   });
 
   const handleRowClick = (equipment: EquipmentSpareData) => {
-    // Use the fixed SlNo from the DB
     console.log('Selected equipment:', equipment);
     setSelectedEquipment(equipment);
     setDetailViewOpen(true);
@@ -36,9 +65,36 @@ const EquipmentDataTable: React.FC<EquipmentDataTableProps> = ({ lineType, onBac
 
   const displayType = lineType === LineType.MODULE ? 'Module Line' : 'Cell Line';
 
+  // Memoize filtered data using debouncedSearchQuery.
+  const filteredData = useMemo(() => {
+    if (!equipmentData) return [];
+    return equipmentData.filter((equipment) => {
+      // Filter by PlantCode (compare string values)
+      if (filterPlantCode !== 'all' && String(equipment.PlantCode) !== filterPlantCode) {
+        return false;
+      }
+      // Search across all fields (if a debounced search term is provided)
+      if (debouncedSearchQuery) {
+        const lowerQuery = debouncedSearchQuery.toLowerCase();
+        let found = false;
+        for (const key in equipment) {
+          const value = equipment[key];
+          if (value !== null && (typeof value === 'string' || typeof value === 'number')) {
+            if (String(value).toLowerCase().includes(lowerQuery)) {
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) return false;
+      }
+      return true;
+    });
+  }, [equipmentData, filterPlantCode, debouncedSearchQuery]);
+
   return (
     <div className="flex flex-col h-full animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row items-center justify-between mb-6 space-y-4 md:space-y-0">
         <div>
           <Button variant="ghost" size="sm" onClick={onBack} className="mb-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -48,6 +104,25 @@ const EquipmentDataTable: React.FC<EquipmentDataTableProps> = ({ lineType, onBac
           <p className="text-muted-foreground">
             Showing all spare parts for {displayType.toLowerCase()} equipment
           </p>
+        </div>
+        {/* Responsive Filter & Search Controls */}
+        <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
+          <select
+            value={filterPlantCode}
+            onChange={(e) => setFilterPlantCode(e.target.value)}
+            className="border border-gray-300 rounded p-2"
+          >
+            <option value="all">All PlantCodes</option>
+            <option value="2000">2000</option>
+            <option value="5000">5000</option>
+          </select>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search..."
+            className="border border-gray-300 rounded p-2"
+          />
         </div>
       </div>
 
@@ -63,8 +138,8 @@ const EquipmentDataTable: React.FC<EquipmentDataTableProps> = ({ lineType, onBac
           <p className="text-danger">Error loading data</p>
         </div>
       ) : (
-        <ScrollArea className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-auto">
-          <table className="data-table min-w-full">
+        <ScrollArea className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
+          <table className="data-table min-w-max w-full">
             <thead>
               <tr>
                 <th>SlNo</th>
@@ -94,36 +169,36 @@ const EquipmentDataTable: React.FC<EquipmentDataTableProps> = ({ lineType, onBac
               </tr>
             </thead>
             <tbody>
-              {equipmentData.map((equipment) => {
+              {filteredData.map((equipment) => {
                 const slNo = equipment.SlNo || (equipment as any).slno;
                 const key = slNo; // Using SlNo as unique key
                 const hasPhotos = equipment.UploadPhotos && equipment.UploadPhotos !== 'null';
                 const hasDrawings = equipment.Drawing && equipment.Drawing !== 'null';
                 return (
                   <tr key={key} onClick={() => handleRowClick(equipment)} className="cursor-pointer">
-                    <td>{slNo}</td>
-                    <td>{equipment.PlantCode}</td>
-                    <td>{equipment.Plant}</td>
-                    <td>{equipment.Line}</td>
-                    <td>{equipment.EquipmentName}</td>
-                    <td>{equipment.EquipmentNo}</td>
-                    <td>{equipment.MachineSupplier}</td>
-                    <td>{equipment.Type}</td>
-                    <td>{equipment.SpareName}</td>
-                    <td>{equipment.MaterialSAPCode}</td>
-                    <td>{equipment.SAPShortText}</td>
-                    <td>{equipment.FullDescription}</td>
-                    <td>{equipment.PartNo}</td>
-                    <td>{equipment.Make}</td>
-                    <td>{equipment.Category}</td>
-                    <td>{equipment.VED}</td>
-                    <td>{equipment.Vendor1}</td>
-                    <td>{equipment.SpareLifecycle}</td>
-                    <td>{equipment.FrequencyMonths}</td>
-                    <td>{equipment.TotalQtyPerFrequency}</td>
-                    <td>{equipment.RequirementPerYear}</td>
-                    <td>{equipment.SafetyStock}</td>
-                    <td>{equipment.TotalAnnualQtyProjection}</td>
+                    <td>{highlightText(slNo.toString(), debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.PlantCode ? String(equipment.PlantCode) : '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.Plant || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.Line || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.EquipmentName || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.EquipmentNo || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.MachineSupplier || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.Type || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.SpareName || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.MaterialSAPCode || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.SAPShortText || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.FullDescription || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.PartNo || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.Make || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.Category || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.VED || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.Vendor1 || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.SpareLifecycle || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.FrequencyMonths?.toString() || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.TotalQtyPerFrequency?.toString() || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.RequirementPerYear?.toString() || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.SafetyStock?.toString() || '', debouncedSearchQuery)}</td>
+                    <td>{highlightText(equipment.TotalAnnualQtyProjection?.toString() || '', debouncedSearchQuery)}</td>
                     <td>
                       <div className="flex space-x-1 items-center">
                         {hasPhotos && (

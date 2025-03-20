@@ -5,9 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const morgan = require('morgan');
-
+const https = require('https');
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Database configuration
 const dbConfig = {
@@ -39,6 +38,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
+
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Serve static files for uploaded attachments
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -215,6 +216,30 @@ app.post('/api/equipment/:id/upload', upload.array('files'), async (req, res) =>
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+
+// HTTPS Deployment Section
+const PORT = process.env.PORT || 40443;  // Using a common port for both
+const HOST = process.env.HOST || "10.0.50.16";
+
+const httpsOptions = {
+  key: fs.readFileSync(path.join(__dirname, "certs", "mydomain.key"), "utf8"),
+  cert: fs.readFileSync(path.join(__dirname, "certs", "d466aacf3db3f299.crt"), "utf8"),
+  ca: fs.readFileSync(path.join(__dirname, "certs", "gd_bundle-g2-g1.crt"), "utf8"),
+};
+
+// Start the server
+const startServer = async () => {
+  try {
+    https.createServer(httpsOptions, app).listen(PORT, HOST, () => {
+      console.log(`HTTPS Server running at https://${HOST}:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error starting the server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();

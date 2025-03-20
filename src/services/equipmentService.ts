@@ -1,7 +1,7 @@
 import { EquipmentSpareData, FileAttachment, LineType } from "../types/equipmentTypes";
 
-// Use Vite environment variable syntax
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Use Vite environment variable syntax to access the API base URL
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;  // Access the environment variable
 
 // Fetch equipment data filtered by line type
 export const fetchEquipmentByLineType = async (lineType: LineType): Promise<EquipmentSpareData[]> => {

@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
+import { ServerOptions } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,7 +14,7 @@ export default defineConfig(({ mode }) => {
         key: fs.readFileSync(path.resolve(__dirname, "certs", "mydomain.key"), "utf8"),
         cert: fs.readFileSync(path.resolve(__dirname, "certs", "d466aacf3db3f299.crt"), "utf8"),
         ca: fs.readFileSync(path.resolve(__dirname, "certs", "gd_bundle-g2-g1.crt"), "utf8"),
-      } : false,
+      } as import("https").ServerOptions : undefined,
     },
     plugins: [
       react(),

@@ -222,7 +222,7 @@ app.get('*', (req, res) => {
 
 // HTTPS Deployment Section
 const PORT = process.env.PORT || 40443;  // Using a common port for both
-const HOST = process.env.HOST || "10.0.50.16";
+const HOST = process.env.HOST || "0.0.0.0";
 
 const httpsOptions = {
   key: fs.readFileSync(path.join(__dirname, "certs", "mydomain.key"), "utf8"),

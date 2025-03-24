@@ -17,7 +17,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background p-6">
-      <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col">
+      {/* When a tile is not selected, use max-w-7xl; when selected, use full width */}
+      <div className={`${selectedLineType ? 'w-full' : 'max-w-7xl'} w-full mx-auto flex-1 flex flex-col`}>
         {!selectedLineType ? (
           <>
             <div className="text-center mb-12 mt-16 animate-slide-down">
@@ -42,7 +43,10 @@ const Index = () => {
             </div>
           </>
         ) : (
-          <EquipmentDataTable lineType={selectedLineType} onBack={handleBack} />
+          // Wrap the data table in an overflow-x-auto container so that a horizontal scrollbar appears when needed.
+          <div className="overflow-x-auto">
+            <EquipmentDataTable lineType={selectedLineType} onBack={handleBack} />
+          </div>
         )}
       </div>
     </div>

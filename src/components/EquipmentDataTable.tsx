@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 // Helper function to escape special regex characters.
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Updated helper function: converts any value to string before splitting.
 const highlightText = (text: any, query: string): JSX.Element => {
   const str = text !== undefined && text !== null ? String(text) : '';
   if (!query) return <>{str}</>;
@@ -22,7 +21,7 @@ const highlightText = (text: any, query: string): JSX.Element => {
   return (
     <>
       {parts.map((part, i) =>
-        regex.test(part) ? (
+        new RegExp(escapedQuery, 'i').test(part) ? (
           <span key={i} className="bg-yellow-300">{part}</span>
         ) : (
           part
@@ -138,88 +137,67 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
           <p className="text-danger">Error loading data</p>
         </div>
       ) : (
-        <ScrollArea className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
-          <table className="data-table min-w-max w-full">
-            <thead>
-              <tr>
-                <th>SlNo</th>
-                <th>PlantCode</th>
-                <th>Plant</th>
-                <th>Line</th>
-                <th>EquipmentName</th>
-                <th>EquipmentNo</th>
-                <th>MachineSupplier</th>
-                <th>Type</th>
-                <th>SpareName</th>
-                <th>MaterialSAPCode</th>
-                <th>SAPShortText</th>
-                <th>FullDescription</th>
-                <th>PartNo</th>
-                <th>Make</th>
-                <th>Category</th>
-                <th>VED</th>
-                <th>Vendor1</th>
-                <th>SpareLifecycle</th>
-                <th>FrequencyMonths</th>
-                <th>TotalQtyPerFrequency</th>
-                <th>RequirementPerYear</th>
-                <th>SafetyStock</th>
-                <th>TotalAnnualQtyProjection</th>
-                <th>Attachments</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map((equipment) => {
-                const slNo = equipment.SlNo || (equipment as any).slno;
-                const key = slNo; // Using SlNo as unique key
-                const hasPhotos = equipment.UploadPhotos && equipment.UploadPhotos !== 'null';
-                const hasDrawings = equipment.Drawing && equipment.Drawing !== 'null';
-                return (
-                  <tr key={key} onClick={() => handleRowClick(equipment)} className="cursor-pointer">
-                    <td>{highlightText(slNo.toString(), debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.PlantCode ? String(equipment.PlantCode) : '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.Plant || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.Line || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.EquipmentName || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.EquipmentNo || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.MachineSupplier || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.Type || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.SpareName || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.MaterialSAPCode || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.SAPShortText || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.FullDescription || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.PartNo || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.Make || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.Category || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.VED || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.Vendor1 || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.SpareLifecycle || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.FrequencyMonths?.toString() || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.TotalQtyPerFrequency?.toString() || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.RequirementPerYear?.toString() || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.SafetyStock?.toString() || '', debouncedSearchQuery)}</td>
-                    <td>{highlightText(equipment.TotalAnnualQtyProjection?.toString() || '', debouncedSearchQuery)}</td>
-                    <td>
-                      <div className="flex space-x-1 items-center">
-                        {hasPhotos && (
-                          <Badge variant="outline" className="bg-primary/10 border-primary/20">
-                            <FileImage className="h-3 w-3 mr-1" />
-                            Photos
-                          </Badge>
-                        )}
-                        {hasDrawings && (
-                          <Badge variant="outline" className="bg-secondary border-primary/20">
-                            <FileSymlink className="h-3 w-3 mr-1" />
-                            Drawings
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <ScrollArea className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
+          <div className="min-w-[1950px] w-max">
+            <table className="data-table w-full">
+              <thead>
+                <tr>
+                  <th>PlantCode</th>
+                  <th>EquipmentName</th>
+                  <th>MachineSupplier</th>
+                  <th>Type</th>
+                  <th>SpareName</th>
+                  <th>SAPShortText</th>
+                  <th>PartNo</th>
+                  <th>Make</th>
+                  <th>Vendor1</th>
+                  <th>SpareLifecycle</th>
+                  <th>FrequencyMonths</th>
+                  <th>TotalAnnualQtyProjection</th>
+                  <th>Attachments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.map((equipment) => {
+                  const key = equipment.SlNo || (equipment as any).slno;
+                  const hasPhotos = equipment.UploadPhotos && equipment.UploadPhotos !== 'null';
+                  const hasDrawings = equipment.Drawing && equipment.Drawing !== 'null';
+                  return (
+                    <tr key={key} onClick={() => handleRowClick(equipment)} className="cursor-pointer">
+                      <td>{highlightText(equipment.PlantCode ? String(equipment.PlantCode) : '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.EquipmentName || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.MachineSupplier || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.Type || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.SpareName || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.SAPShortText || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.PartNo || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.Make || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.Vendor1 || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.SpareLifecycle || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.FrequencyMonths?.toString() || '', debouncedSearchQuery)}</td>
+                      <td>{highlightText(equipment.TotalAnnualQtyProjection?.toString() || '', debouncedSearchQuery)}</td>
+                      <td>
+                        <div className="flex space-x-1 items-center">
+                          {hasPhotos && (
+                            <Badge variant="outline" className="bg-primary/10 border-primary/20">
+                              <FileImage className="h-3 w-3 mr-1" />
+                              Photos
+                            </Badge>
+                          )}
+                          {hasDrawings && (
+                            <Badge variant="outline" className="bg-secondary border-primary/20">
+                              <FileSymlink className="h-3 w-3 mr-1" />
+                              Drawings
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </ScrollArea>
       )}
 

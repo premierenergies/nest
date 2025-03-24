@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      "process.env.REACT_APP_API_BASE_URL": JSON.stringify(process.env.REACT_APP_API_BASE_URL || "https://10.0.50.16:40443"), // Make sure to set the base URL for API
-    },
+      "process.env.REACT_APP_API_BASE_URL": JSON.stringify(process.env.REACT_APP_API_BASE_URL || "/api"),
+    },    
   };
 });

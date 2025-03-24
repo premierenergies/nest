@@ -46,8 +46,8 @@ const Login: React.FC = () => {
         setIsRegistering(false);
         setError("Registration successful. Please login.");
       } else {
-        // Login successful – navigate to the home/dashboard page.
-        navigate('/');
+        // Login successful – navigate to the dashboard.
+        navigate('/dashboard');
       }
     } catch (err: any) {
       setError(err.message || "An error occurred");

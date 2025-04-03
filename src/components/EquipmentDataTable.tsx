@@ -1,11 +1,9 @@
-// root/src/components/EquipmentDataTable.tsx
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EquipmentSpareData, LineType } from '../types/equipmentTypes';
 import { fetchEquipmentByLineType } from '../services/equipmentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, FileImage, FileSymlink } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import EquipmentDetailView from './EquipmentDetailView';
 import { Badge } from '@/components/ui/badge';
 
@@ -37,11 +35,60 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
   const [filterPlantCode, setFilterPlantCode] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  
+  // Refs for synchronized scrolling
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Sync scrolling between top scrollbar and main content
+  useEffect(() => {
+    const topScroll = topScrollRef.current;
+    const mainScroll = mainScrollRef.current;
+    const table = tableRef.current;
+    
+    if (!topScroll || !mainScroll || !table) return;
+    
+    // Set the width of the dummy div in the top scrollbar to match the table width
+    const updateTopScrollWidth = () => {
+      const dummyDiv = topScroll.firstElementChild as HTMLDivElement;
+      if (dummyDiv && table) {
+        dummyDiv.style.width = `${table.offsetWidth}px`;
+      }
+    };
+    
+    // Initial width setup
+    updateTopScrollWidth();
+    
+    // Update on window resize
+    window.addEventListener('resize', updateTopScrollWidth);
+    
+    const handleTopScroll = () => {
+      if (mainScroll) {
+        mainScroll.scrollLeft = topScroll.scrollLeft;
+      }
+    };
+    
+    const handleMainScroll = () => {
+      if (topScroll) {
+        topScroll.scrollLeft = mainScroll.scrollLeft;
+      }
+    };
+    
+    topScroll.addEventListener('scroll', handleTopScroll);
+    mainScroll.addEventListener('scroll', handleMainScroll);
+    
+    return () => {
+      topScroll.removeEventListener('scroll', handleTopScroll);
+      mainScroll.removeEventListener('scroll', handleMainScroll);
+      window.removeEventListener('resize', updateTopScrollWidth);
+    };
+  }, []);
 
   const { data: equipmentData, isLoading, error, refetch } = useQuery<EquipmentSpareData[]>({
     queryKey: ['equipment', lineType],
@@ -130,31 +177,37 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
           <p className="text-danger">Error loading data</p>
         </div>
       ) : (
-        <ScrollArea className="rounded-lg border border-border bg-card shadow-sm">
-          {/* Ensure horizontal scrolling and sticky header */}
-          <div className="overflow-x-auto relative">
-            <table
-              className="data-table w-full min-w-[1950px] !overflow-visible"
-              style={{ overflow: 'visible' }}
-            >
-              <thead
-                className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm"
-                style={{ position: 'sticky', top: 0, background: 'rgba(229,231,235,0.8)' }}
-              >
+        <div className="rounded-lg border border-border bg-card shadow-sm h-full flex flex-col">
+          {/* Top scrollbar */}
+          <div 
+            ref={topScrollRef}
+            className="overflow-x-auto overflow-y-hidden border-b border-border"
+            style={{ height: '12px' }}
+          >
+            <div style={{ height: '1px' }}></div>
+          </div>
+          
+          {/* Main table container */}
+          <div 
+            ref={mainScrollRef}
+            className="relative overflow-auto flex-1"
+          >
+            <table ref={tableRef} className="data-table w-full min-w-[1950px]">
+              <thead className="sticky top-0 z-10">
                 <tr>
-                  <th>PlantCode</th>
-                  <th>EquipmentName</th>
-                  <th>MachineSupplier</th>
-                  <th>Type</th>
-                  <th>SpareName</th>
-                  <th>SAPShortText</th>
-                  <th>PartNo</th>
-                  <th>Make</th>
-                  <th>Vendor1</th>
-                  <th>SpareLifecycle</th>
-                  <th>FrequencyMonths</th>
-                  <th>TotalAnnualQtyProjection</th>
-                  <th>Attachments</th>
+                  <th className="sticky left-0 z-20 bg-secondary/80 backdrop-blur-sm">PlantCode</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">EquipmentName</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">MachineSupplier</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">Type</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">SpareName</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">SAPShortText</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">PartNo</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">Make</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">Vendor1</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">SpareLifecycle</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">FrequencyMonths</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">TotalAnnualQtyProjection</th>
+                  <th className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">Attachments</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,7 +217,7 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
                   const hasDrawings = equipment.Drawing && equipment.Drawing !== 'null';
                   return (
                     <tr key={key} onClick={() => handleRowClick(equipment)} className="cursor-pointer">
-                      <td>{highlightText(equipment.PlantCode ? String(equipment.PlantCode) : '', debouncedSearchQuery)}</td>
+                      <td className="sticky left-0 bg-white z-10">{highlightText(equipment.PlantCode ? String(equipment.PlantCode) : '', debouncedSearchQuery)}</td>
                       <td>{highlightText(equipment.EquipmentName || '', debouncedSearchQuery)}</td>
                       <td>{highlightText(equipment.MachineSupplier || '', debouncedSearchQuery)}</td>
                       <td>{highlightText(equipment.Type || '', debouncedSearchQuery)}</td>
@@ -198,7 +251,7 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
               </tbody>
             </table>
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       <EquipmentDetailView equipment={selectedEquipment} isOpen={detailViewOpen} onClose={closeDetailView} />

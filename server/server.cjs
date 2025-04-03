@@ -377,6 +377,91 @@ async function sendEmail(toEmail, subject, content, attachments = []) {
   }
 }
 
+// DELETE endpoint to delete a single attachment
+app.delete('/api/equipment/:id/attachments', async (req, res) => {
+  const { id } = req.params;
+  const { type, url } = req.query;
+  if (!type || (type !== 'photo' && type !== 'drawing')) {
+    return res.status(400).json({ error: 'Invalid or missing attachment type' });
+  }
+  if (!url) {
+    return res.status(400).json({ error: 'Missing attachment URL' });
+  }
+  try {
+    const request = pool.request();
+    request.input('id', mssql.Int, id);
+    const result = await request.query('SELECT * FROM EquipmentSpareData WHERE SlNo = @id');
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Equipment not found' });
+    }
+    const equipment = result.recordset[0];
+    const columnName = type === 'photo' ? 'UploadPhotos' : 'Drawing';
+    let attachments = [];
+    if (equipment[columnName]) {
+      attachments = JSON.parse(equipment[columnName]);
+    }
+    const attachmentToDelete = attachments.find(att => att.url === url);
+    if (!attachmentToDelete) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+    // Remove the attachment from the array
+    const updatedAttachments = attachments.filter(att => att.url !== url);
+    // Delete the file from disk
+    const filePath = path.join(__dirname, url);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    // Update the DB record
+    const updateRequest = pool.request();
+    updateRequest.input('attachments', mssql.NVarChar(mssql.MAX), JSON.stringify(updatedAttachments));
+    updateRequest.input('id', mssql.Int, id);
+    const updateQuery = `UPDATE EquipmentSpareData SET ${columnName} = @attachments WHERE SlNo = @id`;
+    await updateRequest.query(updateQuery);
+
+    // Log the deletion in EquipmentChangeLog
+    const createLogTableQuery = `
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'EquipmentChangeLog')
+      BEGIN
+        CREATE TABLE EquipmentChangeLog (
+          LogID INT IDENTITY(1,1) PRIMARY KEY,
+          EntrySno INT,
+          Field VARCHAR(255),
+          BeforeState NVARCHAR(MAX),
+          AfterState NVARCHAR(MAX),
+          UpdatedBy VARCHAR(255),
+          Timestamp DATETIME
+        )
+      END
+    `;
+    await request.batch(createLogTableQuery);
+    const logEntry = {
+      EntrySno: id,
+      Field: columnName,
+      BeforeState: JSON.stringify(attachmentToDelete),
+      AfterState: 'Deleted',
+      UpdatedBy: "Current User", // Replace with real user data
+      Timestamp: new Date().toISOString()
+    };
+    const insertLogQuery = `
+      INSERT INTO EquipmentChangeLog (EntrySno, Field, BeforeState, AfterState, UpdatedBy, Timestamp)
+      VALUES (@EntrySno, @Field, @BeforeState, @AfterState, @UpdatedBy, @Timestamp)
+    `;
+    const logRequest = pool.request();
+    logRequest.input('EntrySno', mssql.Int, logEntry.EntrySno);
+    logRequest.input('Field', mssql.VarChar, logEntry.Field);
+    logRequest.input('BeforeState', mssql.NVarChar(mssql.MAX), logEntry.BeforeState);
+    logRequest.input('AfterState', mssql.NVarChar(mssql.MAX), logEntry.AfterState);
+    logRequest.input('UpdatedBy', mssql.VarChar, logEntry.UpdatedBy);
+    logRequest.input('Timestamp', mssql.DateTime, new Date(logEntry.Timestamp));
+    await logRequest.query(insertLogQuery);
+
+    res.status(200).json({ message: 'Attachment deleted successfully', attachments: updatedAttachments });
+  } catch (err) {
+    console.error('Error deleting attachment:', err);
+    res.status(500).json({ error: 'Failed to delete attachment' });
+  }
+});
+
 // POST /api/send-otp
 app.post("/api/send-otp", async (req, res) => {
   const { email } = req.body;

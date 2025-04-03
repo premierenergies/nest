@@ -53,19 +53,18 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
     }
   };
 
-  // When a user clicks the "Edit" button:
+  // When a user clicks "Edit" on a field:
   const handleEditButtonClick = (field: string, value: string) => {
     if (editField === field) {
-      // Already editing this field – trigger confirmation dialog.
+      // If already editing this field, show the confirmation dialog
       setShowConfirmDialog(true);
     } else {
-      // Start editing this field.
       setEditField(field);
       setNewValue(value);
     }
   };
 
-  // Called when user confirms the update
+  // When user confirms the update
   const handleConfirmUpdate = async () => {
     if (editField && newValue !== null && equipment) {
       try {
@@ -74,23 +73,38 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            [editField]: newValue
-          })
+          body: JSON.stringify({ [editField]: newValue })
         });
         if (response.ok) {
-          // Log and then reset edit state
-          console.log(`Field ${editField} updated from "${equipment[editField as keyof EquipmentSpareData]}" to "${newValue}" for entry ${equipment.SlNo}`);
+          console.log(`Field "${editField}" updated from "${equipment[editField as keyof EquipmentSpareData]}" to "${newValue}" for entry ${equipment.SlNo}`);
           setShowConfirmDialog(false);
           setEditField(null);
           setNewValue(null);
-          // Optionally refresh equipment data or notify parent to re-fetch
+          // Optionally refresh or update the equipment object in parent state
         } else {
           alert('Failed to update the field');
         }
       } catch (error) {
         console.error('Error updating field:', error);
       }
+    }
+  };
+
+  // Delete a single attachment
+  const handleDeleteAttachment = async (attachment: FileAttachment, type: 'photo' | 'drawing') => {
+    const confirmed = window.confirm(`Are you sure you want to delete ${attachment.name}?`);
+    if (!confirmed) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}/equipment/${equipment?.SlNo}/attachments?type=${type}&url=${encodeURIComponent(attachment.url)}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setAttachments(prev => prev.filter(att => att.url !== attachment.url));
+      } else {
+        alert('Failed to delete the attachment');
+      }
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
     }
   };
 
@@ -163,12 +177,19 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
                   />
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     {photoAttachments.map((att, index) => (
-                      <img
-                        key={index}
-                        src={att.url}
-                        alt={att.name}
-                        className="w-full h-auto object-cover rounded shadow"
-                      />
+                      <div key={index} className="relative">
+                        <img
+                          src={att.url}
+                          alt={att.name}
+                          className="w-full h-auto object-cover rounded shadow"
+                        />
+                        <button
+                          onClick={() => handleDeleteAttachment(att, 'photo')}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </TabsContent>
@@ -182,12 +203,19 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
                   />
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     {drawingAttachments.map((att, index) => (
-                      <img
-                        key={index}
-                        src={att.url}
-                        alt={att.name}
-                        className="w-full h-auto object-cover rounded shadow"
-                      />
+                      <div key={index} className="relative">
+                        <img
+                          src={att.url}
+                          alt={att.name}
+                          className="w-full h-auto object-cover rounded shadow"
+                        />
+                        <button
+                          onClick={() => handleDeleteAttachment(att, 'drawing')}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </TabsContent>
@@ -214,7 +242,6 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
                 <button
                   className="bg-red-500 text-white px-4 py-2 rounded-md mr-2"
                   onClick={() => {
-                    // Cancel the update and reset edit state
                     setShowConfirmDialog(false);
                     setEditField(null);
                     setNewValue(null);

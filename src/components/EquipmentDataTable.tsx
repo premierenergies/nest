@@ -34,11 +34,8 @@ const highlightText = (text: any, query: string): JSX.Element => {
 const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> = ({ lineType, onBack }) => {
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentSpareData | null>(null);
   const [detailViewOpen, setDetailViewOpen] = useState(false);
-
-  // New state variables for the PlantCode filter and search query.
   const [filterPlantCode, setFilterPlantCode] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  // Debounce the search query to improve performance.
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
   useEffect(() => {
@@ -64,15 +61,12 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
 
   const displayType = lineType === LineType.MODULE ? 'Module Line' : 'Cell Line';
 
-  // Memoize filtered data using debouncedSearchQuery.
   const filteredData = useMemo(() => {
     if (!equipmentData) return [];
     return equipmentData.filter((equipment) => {
-      // Filter by PlantCode (compare string values)
       if (filterPlantCode !== 'all' && String(equipment.PlantCode) !== filterPlantCode) {
         return false;
       }
-      // Search across all fields (if a debounced search term is provided)
       if (debouncedSearchQuery) {
         const lowerQuery = debouncedSearchQuery.toLowerCase();
         let found = false;
@@ -104,7 +98,6 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
             Showing all spare parts for {displayType.toLowerCase()} equipment
           </p>
         </div>
-        {/* Responsive Filter & Search Controls */}
         <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
           <select
             value={filterPlantCode}
@@ -137,10 +130,17 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
           <p className="text-danger">Error loading data</p>
         </div>
       ) : (
-        <ScrollArea className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
-          <div className="min-w-[1950px] w-max">
-            <table className="data-table w-full">
-              <thead>
+        <ScrollArea className="rounded-lg border border-border bg-card shadow-sm">
+          {/* Ensure horizontal scrolling and sticky header */}
+          <div className="overflow-x-auto relative">
+            <table
+              className="data-table w-full min-w-[1950px] !overflow-visible"
+              style={{ overflow: 'visible' }}
+            >
+              <thead
+                className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm"
+                style={{ position: 'sticky', top: 0, background: 'rgba(229,231,235,0.8)' }}
+              >
                 <tr>
                   <th>PlantCode</th>
                   <th>EquipmentName</th>

@@ -16,23 +16,13 @@ require("isomorphic-fetch");
 
 const app = express();
 
-// Use CORS with specific origins and methods
+// Use CORS with all origins and allow PATCH
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://14.194.111.58:3000",
-    "http://spot.premierenergies.com",
-    "http://spot.premierenergies.com:3000",
-    "http://spot.premierenergies.com/login",
-    "https://14.194.111.58:3000",
-    "https://spot.premierenergies.com",
-    "https://spot.premierenergies.com:3000",
-    "https://spot.premierenergies.com/login"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  origin: "*",  // Allow all origins
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
 }));
-app.options("*", cors());
+app.options("*", cors());  // Handle preflight requests
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -177,6 +167,86 @@ app.get('/api/equipment/:id/attachments', async (req, res) => {
   } catch (err) {
     console.error('Error fetching attachments:', err);
     res.status(500).json({ error: 'Failed to fetch attachments' });
+  }
+});
+
+// PATCH endpoint to update equipment fields with change logging
+app.patch('/api/equipment/:id', async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body; // Object with keys as fields to update
+  
+  if (!updateData || Object.keys(updateData).length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  try {
+    const request = pool.request();
+    request.input('id', mssql.Int, id);
+
+    // Retrieve the original record
+    const originalResult = await request.query('SELECT * FROM EquipmentSpareData WHERE SlNo = @id');
+    if (originalResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Equipment not found' });
+    }
+    const originalData = originalResult.recordset[0];
+
+    // Construct SET clause
+    let setClause = '';
+    Object.keys(updateData).forEach((key, index) => {
+      setClause += `${key} = @${key}`;
+      if (index < Object.keys(updateData).length - 1) {
+        setClause += ', ';
+      }
+      request.input(key, mssql.VarChar, updateData[key]);
+    });
+
+    const updateQuery = `UPDATE EquipmentSpareData SET ${setClause} WHERE SlNo = @id`;
+    await request.query(updateQuery);
+
+    // Create EquipmentChangeLog table if it doesn't exist
+    const createLogTableQuery = `
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'EquipmentChangeLog')
+      BEGIN
+        CREATE TABLE EquipmentChangeLog (
+          LogID INT IDENTITY(1,1) PRIMARY KEY,
+          EntrySno INT,
+          Field VARCHAR(255),
+          BeforeState NVARCHAR(MAX),
+          AfterState NVARCHAR(MAX),
+          UpdatedBy VARCHAR(255),
+          Timestamp DATETIME
+        )
+      END
+    `;
+    await request.batch(createLogTableQuery);
+
+    // Prepare and insert log entry
+    const logEntry = {
+      EntrySno: id,
+      Field: Object.keys(updateData).join(", "),
+      BeforeState: JSON.stringify(originalData),
+      AfterState: JSON.stringify(updateData),
+      UpdatedBy: "Current User", // Replace with actual user data from session/auth
+      Timestamp: new Date().toISOString()
+    };
+
+    const insertLogQuery = `
+      INSERT INTO EquipmentChangeLog (EntrySno, Field, BeforeState, AfterState, UpdatedBy, Timestamp)
+      VALUES (@EntrySno, @Field, @BeforeState, @AfterState, @UpdatedBy, @Timestamp)
+    `;
+    const logRequest = pool.request();
+    logRequest.input('EntrySno', mssql.Int, logEntry.EntrySno);
+    logRequest.input('Field', mssql.VarChar, logEntry.Field);
+    logRequest.input('BeforeState', mssql.NVarChar(mssql.MAX), logEntry.BeforeState);
+    logRequest.input('AfterState', mssql.NVarChar(mssql.MAX), logEntry.AfterState);
+    logRequest.input('UpdatedBy', mssql.VarChar, logEntry.UpdatedBy);
+    logRequest.input('Timestamp', mssql.DateTime, new Date(logEntry.Timestamp));
+    await logRequest.query(insertLogQuery);
+
+    res.status(200).json({ message: 'Equipment data updated successfully' });
+  } catch (err) {
+    console.error('Error updating equipment data:', err);
+    res.status(500).json({ error: 'Failed to update equipment data' });
   }
 });
 
@@ -425,21 +495,29 @@ app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   const fullEmail = `${email}@premierenergies.com`;
 
+  // Log the email and password being checked
+  console.log(`Login Attempt - Username: ${fullEmail}, Password: ${password}`);
+
   try {
     await mssql.connect(authDbConfig);
+    
+    // Check the credentials
     const result = await mssql.query`
-        SELECT * FROM Login WHERE Username = ${fullEmail} AND LPassword = ${password}
-      `;
+      SELECT * FROM Login WHERE Username = ${fullEmail} AND LPassword = ${password}
+    `;
+    
     if (result.recordset.length > 0) {
+      console.log("Login successful!");
       res.status(200).json({
         message: "Login successful",
         empID: result.recordset[0].LEmpID,
       });
     } else {
+      console.log("Login failed - incorrect credentials.");
       res.status(401).json({ message: "Your Username or Password are incorrect" });
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error during login:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

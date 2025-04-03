@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      "process.env.REACT_APP_API_BASE_URL": JSON.stringify(process.env.REACT_APP_API_BASE_URL || "/api"),
+      "process.env.REACT_APP_API_BASE_URL": JSON.stringify(process.env.REACT_APP_API_BASE_URL || "https://localhost:40443/api"),
     },    
   };
 });

@@ -1,4 +1,3 @@
-// root/src/components/EquipmentDetailView.tsx
 import React, { useState, useEffect } from 'react';
 import { EquipmentSpareData, FileAttachment } from '../types/equipmentTypes';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,11 +12,16 @@ interface EquipmentDetailViewProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
 const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, isOpen, onClose }) => {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [editField, setEditField] = useState<string | null>(null);
+  const [newValue, setNewValue] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
+  // Load attachments (photos and drawings)
   const loadAttachments = async () => {
     if (equipment) {
       try {
@@ -49,23 +53,65 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
     }
   };
 
+  // When a user clicks the "Edit" button:
+  const handleEditButtonClick = (field: string, value: string) => {
+    if (editField === field) {
+      // Already editing this field – trigger confirmation dialog.
+      setShowConfirmDialog(true);
+    } else {
+      // Start editing this field.
+      setEditField(field);
+      setNewValue(value);
+    }
+  };
+
+  // Called when user confirms the update
+  const handleConfirmUpdate = async () => {
+    if (editField && newValue !== null && equipment) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/equipment/${equipment.SlNo}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            [editField]: newValue
+          })
+        });
+        if (response.ok) {
+          // Log and then reset edit state
+          console.log(`Field ${editField} updated from "${equipment[editField as keyof EquipmentSpareData]}" to "${newValue}" for entry ${equipment.SlNo}`);
+          setShowConfirmDialog(false);
+          setEditField(null);
+          setNewValue(null);
+          // Optionally refresh equipment data or notify parent to re-fetch
+        } else {
+          alert('Failed to update the field');
+        }
+      } catch (error) {
+        console.error('Error updating field:', error);
+      }
+    }
+  };
+
   if (!equipment) return null;
 
-  // Filter attachments by type for each tab.
   const photoAttachments = attachments.filter(a => a.type === 'photo');
   const drawingAttachments = attachments.filter(a => a.type === 'drawing');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-xl border-border bg-card shadow-lg backdrop-blur-sm animate-scale-in">
-        <DialogHeader className="p-6 pb-2 border-b border-border">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-xl border border-gray-300 bg-card shadow-lg backdrop-blur-sm animate-scale-in">
+        <DialogHeader className="p-6 pb-2 border-b border-gray-300">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">{equipment.EquipmentName} - {equipment.SpareName}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">
+              {equipment.EquipmentName} - {equipment.SpareName}
+            </DialogTitle>
             <button onClick={onClose} className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-secondary transition-colors">
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="text-sm text-muted-foreground mt-1">
+          <div className="text-sm text-gray-500 mt-1">
             {equipment.EquipmentNo} | {equipment.Line.replace('_', ' ')}
           </div>
         </DialogHeader>
@@ -82,28 +128,29 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
 
                 <TabsContent value="details" className="mt-0 animate-fade-in">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <DetailItem label="Plant" value={equipment.Plant} />
-                    <DetailItem label="PlantCode" value={equipment.PlantCode} />
-                    <DetailItem label="Line" value={equipment.Line} />
-                    <DetailItem label="EquipmentName" value={equipment.EquipmentName} />
-                    <DetailItem label="EquipmentNo" value={equipment.EquipmentNo} />
-                    <DetailItem label="MachineSupplier" value={equipment.MachineSupplier} />
-                    <DetailItem label="Type" value={equipment.Type} />
-                    <DetailItem label="SpareName" value={equipment.SpareName} />
-                    <DetailItem label="MaterialSAPCode" value={equipment.MaterialSAPCode} />
-                    <DetailItem label="SAPShortText" value={equipment.SAPShortText} />
-                    <DetailItem label="FullDescription" value={equipment.FullDescription} span={2} />
-                    <DetailItem label="PartNo" value={equipment.PartNo} />
-                    <DetailItem label="Make" value={equipment.Make} />
-                    <DetailItem label="Category" value={equipment.Category} />
-                    <DetailItem label="VED" value={equipment.VED} />
-                    <DetailItem label="Vendor1" value={equipment.Vendor1} />
-                    <DetailItem label="SpareLifecycle" value={equipment.SpareLifecycle} />
-                    <DetailItem label="FrequencyMonths" value={equipment.FrequencyMonths.toString()} />
-                    <DetailItem label="TotalQtyPerFrequency" value={equipment.TotalQtyPerFrequency.toString()} />
-                    <DetailItem label="RequirementPerYear" value={equipment.RequirementPerYear.toString()} />
-                    <DetailItem label="SafetyStock" value={equipment.SafetyStock.toString()} />
-                    <DetailItem label="TotalAnnualQtyProjection" value={equipment.TotalAnnualQtyProjection.toString()} />
+                    {Object.entries(equipment).map(([key, value]) => (
+                      <div key={key} className="p-3 bg-secondary/30 rounded-lg flex flex-col">
+                        <span className="text-xs text-gray-600">{key}</span>
+                        <span className="font-medium">
+                          {editField === key ? (
+                            <input
+                              type="text"
+                              value={newValue || value}
+                              onChange={(e) => setNewValue(e.target.value)}
+                              className="w-full p-2 rounded bg-white border-2 border-blue-500"
+                            />
+                          ) : (
+                            value
+                          )}
+                        </span>
+                        <button
+                          className={`mt-2 text-sm ${editField === key ? 'text-green-600' : 'text-primary'}`}
+                          onClick={() => handleEditButtonClick(key, String(value))}
+                        >
+                          {editField === key ? 'Save' : 'Edit'}
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </TabsContent>
 
@@ -149,15 +196,45 @@ const EquipmentDetailView: React.FC<EquipmentDetailViewProps> = ({ equipment, is
           </ScrollArea>
         </div>
       </DialogContent>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <Dialog open={showConfirmDialog} onOpenChange={(open) => !open && setShowConfirmDialog(false)}>
+          <DialogContent className="sm:max-w-sm p-6">
+            <DialogHeader>
+              <DialogTitle>Confirm Update</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <p>
+                Are you sure you want to update the field "{editField}" from "
+                {equipment && equipment[editField as keyof EquipmentSpareData]}" to "
+                {newValue}"?
+              </p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  className="bg-red-500 text-white px-4 py-2 rounded-md mr-2"
+                  onClick={() => {
+                    // Cancel the update and reset edit state
+                    setShowConfirmDialog(false);
+                    setEditField(null);
+                    setNewValue(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="bg-green-500 text-white px-4 py-2 rounded-md"
+                  onClick={handleConfirmUpdate}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 };
-
-const DetailItem: React.FC<{ label: string; value: string; span?: number }> = ({ label, value, span = 1 }) => (
-  <div className={`p-3 bg-secondary/30 rounded-lg flex flex-col ${span > 1 ? 'md:col-span-' + span : ''}`}>
-    <span className="text-xs text-muted-foreground">{label}</span>
-    <span className="font-medium">{value}</span>
-  </div>
-);
 
 export default EquipmentDetailView;

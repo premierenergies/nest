@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,25 +15,29 @@ const Login: React.FC = () => {
     setError(null);
   };
 
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    const fullEmail = email; // Use only the email part without appending the domain
+
     // If registering, ensure passwords match.
     if (isRegistering && password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
+
     try {
-      const endpoint = isRegistering ? '/api/register' : '/api/login';
-      const response = await fetch(endpoint, {
-        method: 'POST',
+      const endpoint = isRegistering ? "/register" : "/login"; // Remove "/api" as it is handled in the base URL
+      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        // Pass the email and password; backend will append "@premierenergies.com"
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: fullEmail, password }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -42,12 +46,10 @@ const Login: React.FC = () => {
         return;
       }
       if (isRegistering) {
-        // Registration successful – switch to login mode.
         setIsRegistering(false);
         setError("Registration successful. Please login.");
       } else {
-        // Login successful – navigate to the dashboard.
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (err: any) {
       setError(err.message || "An error occurred");
@@ -60,13 +62,9 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-8">
         <h2 className="text-2xl font-bold mb-6 text-center">
-          {isRegistering ? 'Register' : 'Login'}
+          {isRegistering ? "Register" : "Login"}
         </h2>
-        {error && (
-          <div className="mb-4 text-center text-red-600">
-            {error}
-          </div>
-        )}
+        {error && <div className="mb-4 text-center text-red-600">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1" htmlFor="email">
@@ -74,11 +72,11 @@ const Login: React.FC = () => {
             </label>
             <input
               id="email"
-              type="email"
+              type="text" // Changed from "email" to "text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-gray-300 rounded p-2"
-              placeholder="your.email"
+              placeholder="your.email" // User only needs to enter the part before '@'
               required
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -86,7 +84,10 @@ const Login: React.FC = () => {
             </p>
           </div>
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="password">
+            <label
+              className="block text-sm font-medium mb-1"
+              htmlFor="password"
+            >
               Password
             </label>
             <input
@@ -101,7 +102,10 @@ const Login: React.FC = () => {
           </div>
           {isRegistering && (
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1" htmlFor="confirmPassword">
+              <label
+                className="block text-sm font-medium mb-1"
+                htmlFor="confirmPassword"
+              >
                 Confirm Password
               </label>
               <input
@@ -120,7 +124,13 @@ const Login: React.FC = () => {
             className="w-full bg-primary text-white py-2 rounded hover:bg-primary-dark transition-colors"
             disabled={loading}
           >
-            {loading ? (isRegistering ? 'Registering...' : 'Logging in...') : (isRegistering ? 'Register' : 'Login')}
+            {loading
+              ? isRegistering
+                ? "Registering..."
+                : "Logging in..."
+              : isRegistering
+              ? "Register"
+              : "Login"}
           </button>
         </form>
         <div className="mt-4 text-center">
@@ -129,7 +139,9 @@ const Login: React.FC = () => {
             onClick={handleToggle}
             className="text-sm text-primary hover:underline"
           >
-            {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
+            {isRegistering
+              ? "Already have an account? Login"
+              : "Don't have an account? Register"}
           </button>
         </div>
       </div>

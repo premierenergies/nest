@@ -59,92 +59,118 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          {isRegistering ? "Register" : "Login"}
-        </h2>
-        {error && <div className="mb-4 text-center text-red-600">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="text" // Changed from "email" to "text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2"
-              placeholder="your.email" // User only needs to enter the part before '@'
-              required
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              We'll append "@premierenergies.com" automatically.
-            </p>
-          </div>
-          <div className="mb-4">
-            <label
-              className="block text-sm font-medium mb-1"
-              htmlFor="password"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          {isRegistering && (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header with logos */}
+      <header className="w-full p-4 flex justify-between items-center bg-white shadow-sm">
+        <div className="h-12">
+          <img 
+            src="../assets/1.png" 
+            alt="Left Logo" 
+            className="h-full object-contain"
+          />
+        </div>
+        <div className="h-12">
+          <img 
+            src="../assets/logo-right.png" 
+            alt="Right Logo" 
+            className="h-full object-contain"
+          />
+        </div>
+      </header>
+
+      {/* Main content */}
+      <div className="flex-grow flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            {isRegistering ? "Register" : "Login"}
+          </h2>
+          {error && <div className="mb-4 text-center text-red-600">{error}</div>}
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="text" // Changed from "email" to "text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-gray-300 rounded p-2"
+                placeholder="your.email" // User only needs to enter the part before '@'
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                We'll append "@premierenergies.com" automatically.
+              </p>
+            </div>
             <div className="mb-4">
               <label
                 className="block text-sm font-medium mb-1"
-                htmlFor="confirmPassword"
+                htmlFor="password"
               >
-                Confirm Password
+                Password
               </label>
               <input
-                id="confirmPassword"
+                id="password"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full border border-gray-300 rounded p-2"
-                placeholder="Re-enter your password"
+                placeholder="Enter your password"
                 required
               />
             </div>
-          )}
-          <button
-            type="submit"
-            className="w-full bg-primary text-white py-2 rounded hover:bg-primary-dark transition-colors"
-            disabled={loading}
-          >
-            {loading
-              ? isRegistering
-                ? "Registering..."
-                : "Logging in..."
-              : isRegistering
-              ? "Register"
-              : "Login"}
-          </button>
-        </form>
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={handleToggle}
-            className="text-sm text-primary hover:underline"
-          >
-            {isRegistering
-              ? "Already have an account? Login"
-              : "Don't have an account? Register"}
-          </button>
+            {isRegistering && (
+              <div className="mb-4">
+                <label
+                  className="block text-sm font-medium mb-1"
+                  htmlFor="confirmPassword"
+                >
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded p-2"
+                  placeholder="Re-enter your password"
+                  required
+                />
+              </div>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-primary text-white py-2 rounded hover:bg-primary-dark transition-colors"
+              disabled={loading}
+            >
+              {loading
+                ? isRegistering
+                  ? "Registering..."
+                  : "Logging in..."
+                : isRegistering
+                ? "Register"
+                : "Login"}
+            </button>
+          </form>
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={handleToggle}
+              className="text-sm text-primary hover:underline"
+            >
+              {isRegistering
+                ? "Already have an account? Login"
+                : "Don't have an account? Register"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="w-full p-4 bg-gray-100 border-t border-gray-200 text-center text-sm text-gray-600">
+        <p>© {new Date().getFullYear()} Premier Energies. All rights reserved.</p>
+      </footer>
     </div>
   );
 };

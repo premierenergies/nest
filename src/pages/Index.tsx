@@ -28,7 +28,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background p-6">
       {/* Header with logout */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-bold tracking-tight">Equipment Spare Management</h1>
+        <h1 className="text-4xl font-bold tracking-tight">NEST</h1>
         <button
           onClick={handleLogout}
           className="text-sm text-red-600 hover:text-red-800 flex items-center space-x-2"

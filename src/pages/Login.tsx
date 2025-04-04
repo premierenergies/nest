@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import leftlogo from "../assets/1.png"; 
+import rightlogo from "../assets/P.png"
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -62,16 +64,16 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header with logos */}
       <header className="w-full p-4 flex justify-between items-center bg-white shadow-sm">
-        <div className="h-12">
+        <div className="h-12 flex items-center">
           <img 
-            src="../assets/1.png" 
+            src={leftlogo}
             alt="Left Logo" 
-            className="h-full object-contain"
+            className="h-16 object-contain" // Increased logo size here
           />
         </div>
         <div className="h-12">
           <img 
-            src="../assets/logo-right.png" 
+            src={rightlogo}
             alt="Right Logo" 
             className="h-full object-contain"
           />
@@ -169,7 +171,7 @@ const Login: React.FC = () => {
 
       {/* Footer */}
       <footer className="w-full p-4 bg-gray-100 border-t border-gray-200 text-center text-sm text-gray-600">
-        <p>© {new Date().getFullYear()} Premier Energies. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Webstax Inc. All rights reserved.</p>
       </footer>
     </div>
   );

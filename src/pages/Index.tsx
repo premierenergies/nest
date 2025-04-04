@@ -4,6 +4,7 @@ import OptionTile from '../components/OptionTile';
 import EquipmentDataTable from '../components/EquipmentDataTable';
 import { LineType } from '../types/equipmentTypes';
 import { Box, Layers, LogOut } from 'lucide-react'; // Added LogOut icon
+import leftlogo from "../assets/1.png"; // Correct path to assets folder
 
 const Index = () => {
   const [selectedLineType, setSelectedLineType] = useState<LineType | null>(null);
@@ -28,7 +29,13 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background p-6">
       {/* Header with logout */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-bold tracking-tight">NEST</h1>
+        <div className="h-12">
+          <img 
+            src={leftlogo}
+            alt="Left Logo" 
+            className="max-h-16 object-contain" // Ensure the logo fits well
+          />
+        </div>
         <button
           onClick={handleLogout}
           className="text-sm text-red-600 hover:text-red-800 flex items-center space-x-2"

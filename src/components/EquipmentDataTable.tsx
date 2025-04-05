@@ -140,7 +140,7 @@ const EquipmentDataTable: React.FC<{ lineType: LineType; onBack: () => void }> =
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">{displayType} Equipment</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{displayType} Spares</h1>
           <p className="text-muted-foreground">
             Showing all spare parts for {displayType.toLowerCase()} equipment
           </p>
